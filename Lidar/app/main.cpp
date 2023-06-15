@@ -34,16 +34,20 @@
 
 #include "sl_lidar.h" 
 #include "sl_lidar_driver.h"
+#include "wiringPi.h"
+#include "wiringSerial.h"
+
+
 #ifndef _countof
 #define _countof(_Array) (int)(sizeof(_Array) / sizeof(_Array[0]))
 #endif
 
 #ifdef _WIN32
 #include <Windows.h>
-#define delay(x)   ::Sleep(x)
+#define delay_func(x)   ::Sleep(x)
 #else
 #include <unistd.h>
-static inline void delay(sl_word_size_t ms){
+static inline void delay_func(sl_word_size_t ms){
     while (ms>=1000){
         usleep(1000*1000);
         ms-=1000;
@@ -129,13 +133,7 @@ class Node_class
         return y_coo;
     }
 
-    Node_class operator= (Node_class node)
-    {
-        theta = node.get_theta();
-        dist  = node.get_distance();
-        x_coo = node.get_x_coo();
-        y_coo = node.get_y_coo();
-    }
+
     private:
     float theta;
     float dist;
@@ -148,7 +146,7 @@ class Node_class
 int main(int argc, const char * argv[]) {
 
     Node_class* buffer_ptr = nullptr;
-
+    int fd;
 	const char * opt_is_channel = NULL; 
 	const char * opt_channel = NULL;
     const char * opt_channel_param_first = NULL;
@@ -160,7 +158,7 @@ int main(int argc, const char * argv[]) {
 	bool useArgcBaudrate = false;
 
     IChannel* _channel;
-
+    fd = serialOpen ("/dev/ttyAMA0", 115200);
     printf("Ultra simple LIDAR data grabber for SLAMTEC LIDAR.\n"
            "Version: %s\n", "SL_LIDAR_SDK_VERSION");
 
@@ -342,7 +340,10 @@ int main(int argc, const char * argv[]) {
                 if(buffer_ptr->get_theta() > 10 && buffer_ptr->get_theta() < 170 && buffer_ptr->get_distance() !=0)
                 {
                     if (buffer_ptr->get_distance() < 100)
-                        std::cout<<"collision" <<std::endl;
+                    {
+                        //std::cout<<"collision" <<std::endl;
+                        serialPuts(fd,"o"); 
+                    }
                     /*std::cout << "angel: "<<buffer_ptr->get_theta()<<" , "<<"distance: "<<buffer_ptr->get_distance()<< " x: ";
                     std::cout <<buffer_ptr->get_x_coo()<<" y: "<<buffer_ptr->get_y_coo()<<std::endl;*/
                 }
@@ -356,7 +357,7 @@ int main(int argc, const char * argv[]) {
     }
 
     drv->stop();
-	delay(200);
+	delay_func(200);
 	if(opt_channel_type == CHANNEL_TYPE_SERIALPORT)
         drv->setMotorSpeed(0);
     // done!
