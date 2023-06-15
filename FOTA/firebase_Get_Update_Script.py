@@ -62,4 +62,6 @@ while True:
         file.write(str(current_version.val()))
         file.close()
         version_check=current_version.val()
-        exec (open("/home/pi/Desktop/Update_Script/GUI_Update_Notification.py").read())
+        file=open("/home/pi/Desktop/Update_Script/notify.txt","w")
+        file.write("1")
+        file.close()

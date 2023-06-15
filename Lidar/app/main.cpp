@@ -158,7 +158,7 @@ int main(int argc, const char * argv[]) {
 	bool useArgcBaudrate = false;
 
     IChannel* _channel;
-    fd = serialOpen ("/dev/ttyAMA0", 115200);
+    fd = serialOpen ("/dev/ttyAMA0", 9600);
     printf("Ultra simple LIDAR data grabber for SLAMTEC LIDAR.\n"
            "Version: %s\n", "SL_LIDAR_SDK_VERSION");
 
