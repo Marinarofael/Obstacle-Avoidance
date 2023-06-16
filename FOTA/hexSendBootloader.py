@@ -8,13 +8,13 @@ PORT = '/dev/ttyS0'
 BAUD_RATE = 9600
 
 print ('opening serial port')
-time.sleep(1)
 
 #decomposing string of file to be sent character by character
 string_pattern = b'.'
 chunk = re.compile(string_pattern)
 
-ser = serial.Serial(PORT, BAUD_RATE)
+ser = serial.Serial(PORT, BAUD_RATE, timeout = None)
+ser.flush()
 #Function name: flash()
 #Function Desc:Send new hex file to STM32
 def flash():
@@ -32,7 +32,6 @@ def flash():
                 ser.write(result[x]) 
                 #time.sleep(.01)
             ser.write('\n'.encode('utf-8'))     
-            print(result)
             while True :
                 data_rec=ser.read()
                 #print(data_rec)

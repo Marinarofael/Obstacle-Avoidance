@@ -31,7 +31,6 @@
 #include <cmath>
 #include <iostream>
 
-
 #include "sl_lidar.h" 
 #include "sl_lidar_driver.h"
 #include "wiringPi.h"
@@ -158,7 +157,7 @@ int main(int argc, const char * argv[]) {
 	bool useArgcBaudrate = false;
 
     IChannel* _channel;
-    fd = serialOpen ("/dev/ttyAMA0", 9600);
+   fd = serialOpen ("/dev/ttyS0", 9600);
     printf("Ultra simple LIDAR data grabber for SLAMTEC LIDAR.\n"
            "Version: %s\n", "SL_LIDAR_SDK_VERSION");
 

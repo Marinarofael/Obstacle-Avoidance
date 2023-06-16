@@ -3,8 +3,9 @@ import threading
 import os
 import signal
 from time import sleep
+import subprocess
 import RPi.GPIO as GPIO 
-import hexSendBootloader
+from hexSendBootloader import *
 
 
 #start sequence and syncronization between RPI and STM
@@ -30,7 +31,7 @@ def process_Kill(name):
             pid = fields[0]
              
             # terminating process
-            os.kill(int(pid), signal.SIGKILL)
+            os.kill(int(pid), signal.SIGINT)
         print("Process Successfully terminated")
          
     except:
@@ -38,41 +39,48 @@ def process_Kill(name):
 
 def System_Reset():
     while True :
-        data_rec=ser.read()
+        global ser
+        data_rec=ser.read(size=1)
+        print(data_rec.decode('utf-8'))
         #if the responce from STM is No application 
         if data_rec.decode('utf-8') == 'n':
             print("system Need to flash")
             flash()
+            file=open("/home/pi/ITI/FOTA/notify.txt","w")
+            file.write("0")
+            file.close()
+            break
 
         #if the responce from STM is ready application 
         elif data_rec.decode('utf-8') == 'a':
-            if start_stop_flage == 1:
-                print("system start lidar")
-                cmd = "./lidar --channel --serial /dev/ttyUSB0 115200 &"
-                os.system(cmd)
-                sleep(2)
-                #request for STM to jump to the application
-                ser.write('a'.encode('utf-8'))
+            print("system start lidar")
+            subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
+            sleep(2)
+            #request for STM to jump to the application
+            ser.write('a'.encode('utf-8'))
             break
 
 
 
 def System_Start():
+    global start_stop_flage, Syetem_Initialize,System_Ready, ser
     while True:
         if start_stop_flage == Syetem_Initialize:
             os.system("python3 firebase_Get_Update_Script.py &")
             ser.write('s'.encode('utf-8')) 
             print("system start")
             System_Reset()
+            print("System_Ready")
             start_stop_flage = System_Ready
-        sleep(1)
+        sleep(0.5)
 
 
 
 def System_Stop():
+    global start_stop_flage, System_Stop, System_IDLE, ser
     while True:
         if start_stop_flage == System_Stop:
-            file=open("/home/pi/Desktop/Update_Script/notify.txt","r")
+            file=open("/home/pi/ITI/FOTA/notify.txt","r")
             flage = file.read()
             file.close()
             #system kills lidar and fire base process
@@ -85,25 +93,27 @@ def System_Stop():
                 #Notify STM to be flashed
                 ser.write('f'.encode('utf-8')) 
                 System_Reset()
-                file=open("/home/pi/Desktop/Update_Script/notify.txt","w")
-                file.write("0")
-                file.close()
+                print("Flash done")
             start_stop_flage = System_IDLE
-        sleep(1)
+        sleep(0.5)
 
 
-def button_callback():
-    if start_stop_flage == System_IDLE 
+def button_callback(buffer):
+    global start_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
+    print(start_stop_flage)
+    if start_stop_flage == System_IDLE: 
         start_stop_flage = Syetem_Initialize
     elif start_stop_flage == System_Ready:
         start_stop_flage = System_Stop
+    sleep(1)
 
 
 
 GPIO.setwarnings(False) # Ignore warning for now
-GPIO.setmode(GPIO.BOARD) # Use physical pin numbering
-GPIO.setup(10, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
-GPIO.add_event_detect(10,GPIO.RISING,callback=button_callback) # Setup event on pin 10 rising edge
+GPIO.setmode(GPIO.BCM) # Use physical pin numbering
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+GPIO.add_event_detect(17,GPIO.RISING,callback=button_callback) # Setup event on pin 10 rising edge
+
 
 t1 = threading.Thread(target=System_Start)
 t2 = threading.Thread(target=System_Stop)
