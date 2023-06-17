@@ -5,6 +5,7 @@ import signal
 from time import sleep
 import subprocess
 import RPi.GPIO as GPIO 
+from datetime import datetime
 from hexSendBootloader import *
 
 
@@ -19,8 +20,13 @@ System_Stop=3
 #System state flage
 start_stop_flage = System_IDLE
 
+log_file=open("/home/pi/ITI/FOTA/log.txt","a")
+
 def process_Kill(name):
      
+    now = datetime.now()
+    log_str = now.strftime("%d/%m/%Y %H:%M:%S")
+    
     try:
          
         # iterating through each instance of the process
@@ -32,26 +38,34 @@ def process_Kill(name):
              
             # terminating process
             os.kill(int(pid), signal.SIGINT)
-        print("Process Successfully terminated")
+        
+        log_str = log_str + "|"+ name + "Successfully terminated \n"
+        log_file.write(log_str)
          
     except:
-        print("Error Encountered while running script")
+        log_str = log_str + "|"+ name + "Error Encountered while running script \n"
+        log_file.write(log_str)
 
 def System_Reset():
     while True :
         global ser
         data_rec=ser.read(size=1)
-        print(data_rec.decode('utf-8'))
+        now = datetime.now()
+        log_str = now.strftime("%d/%m/%Y %H:%M:%S")
         #if the responce from STM is No application 
         if data_rec.decode('utf-8') == 'n':
-            print("system Need to flash")
+            log_str = log_str + "|" +"system Need to flash \n"
+            log_file.write(log_str)
+            
             flash()
             file=open("/home/pi/ITI/FOTA/notify.txt","w")
             file.write("0")
             file.close()
             #flashing empty rom in STM
             if start_stop_flage == Syetem_Initialize :
-                print("system start lidar")
+                log_str = log_str + "|" +"system start lidar \n"
+                log_file.write(log_str)
+               
                 subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
                 sleep(2)
                 #request for STM to jump to the application
@@ -66,7 +80,9 @@ def System_Reset():
 
         #if the responce from STM is ready application 
         elif data_rec.decode('utf-8') == 'a':
-            print("system start lidar")
+            log_str = log_str + "|" +"system start lidar \n"
+            log_file.write(log_str)
+            
             subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
             sleep(2)
             #request for STM to jump to the application
@@ -78,12 +94,15 @@ def System_Reset():
 def System_Start():
     global start_stop_flage, Syetem_Initialize,System_Ready, ser
     while True:
+        now = datetime.now()
+        log_str = now.strftime("%d/%m/%Y %H:%M:%S")
         if start_stop_flage == Syetem_Initialize:
             os.system("python3 firebase_Get_Update_Script.py &")
             ser.write('s'.encode('utf-8')) 
-            print("system start")
+
+            log_str = log_str + "|" +"system start\n "
+            log_file.write(log_str)
             System_Reset()
-            print("System_Ready")
             start_stop_flage = System_Ready
         sleep(0.5)
 
@@ -92,6 +111,9 @@ def System_Start():
 def System_Stop():
     global start_stop_flage, System_Stop, System_IDLE, ser
     while True:
+        now = datetime.now()
+        log_str = now.strftime("%d/%m/%Y %H:%M:%S")
+
         if start_stop_flage == System_Stop:
             file=open("/home/pi/ITI/FOTA/notify.txt","r")
             flage = file.read()
@@ -102,16 +124,20 @@ def System_Stop():
 
             #system need to flash
             if flage == '1':
-                print("system updating...")
+                log_str = log_str + "|" +"system updating... \n"
+                log_file.write(log_str)
+
                 #Notify STM to be flashed
                 ser.write('f'.encode('utf-8')) 
                 System_Reset()
-                print("Flash done")
-            start_stop_flage = System_IDLE
+                log_str = log_str + "|" +"Flash done \n"
+                log_file.write(log_str)
 
             else :
                 #request for STM to stop to the application
                 ser.write('e'.encode('utf-8'))
+            start_stop_flage = System_IDLE
+            log_file.close()
         sleep(0.5)
 
 
