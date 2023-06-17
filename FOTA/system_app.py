@@ -19,11 +19,13 @@ System_Stop=3
 
 #System state flage
 start_stop_flage = System_IDLE
+#push button counter 
+button_counter =0
 
 log_file=open("/home/pi/ITI/FOTA/log.txt","a")
 
 def process_Kill(name):
-     
+    global log_file
     now = datetime.now()
     log_str = now.strftime("%d/%m/%Y %H:%M:%S")
     
@@ -48,7 +50,7 @@ def process_Kill(name):
 
 def System_Reset():
     while True :
-        global ser
+        global ser, log_file
         data_rec=ser.read(size=1)
         now = datetime.now()
         log_str = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -92,14 +94,14 @@ def System_Reset():
 
 
 def System_Start():
-    global start_stop_flage, Syetem_Initialize,System_Ready, ser
+    global start_stop_flage, Syetem_Initialize,System_Ready, ser, log_file
     while True:
         now = datetime.now()
         log_str = now.strftime("%d/%m/%Y %H:%M:%S")
         if start_stop_flage == Syetem_Initialize:
             os.system("python3 firebase_Get_Update_Script.py &")
             ser.write('s'.encode('utf-8')) 
-
+            log_file=open("/home/pi/ITI/FOTA/log.txt","a")
             log_str = log_str + "|" +"system start\n "
             log_file.write(log_str)
             System_Reset()
@@ -109,7 +111,7 @@ def System_Start():
 
 
 def System_Stop():
-    global start_stop_flage, System_Stop, System_IDLE, ser
+    global start_stop_flage, System_Stop, System_IDLE, ser, log_file
     while True:
         now = datetime.now()
         log_str = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -136,36 +138,50 @@ def System_Stop():
             else :
                 #request for STM to stop to the application
                 ser.write('e'.encode('utf-8'))
-            start_stop_flage = System_IDLE
+            
             log_file.close()
+            start_stop_flage = System_IDLE
         sleep(0.5)
 
+def Button_Func():
+    global button_counter, tart_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
+    while True:
+        #detect the rising edge and solve debouncing 
+        if GPIO.input(17) == GPIO.HIGH : 
+            button_counter = button_counter+1
+        else :
+            button_counter = 0
+        #if rising edge is detected
+        if button_counter == 5 :
+            if start_stop_flage == System_IDLE: 
+                start_stop_flage = Syetem_Initialize
+            elif start_stop_flage == System_Ready:
+                start_stop_flage = System_Stop
+        sleep(0.2)
 
-def button_callback(buffer):
-    global start_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
-    if start_stop_flage == System_IDLE: 
-        start_stop_flage = Syetem_Initialize
-    elif start_stop_flage == System_Ready:
-        start_stop_flage = System_Stop
-    sleep(1)
 
 
 
 GPIO.setwarnings(False) # Ignore warning for now
 GPIO.setmode(GPIO.BCM) # Use physical pin numbering
 GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
-GPIO.add_event_detect(17,GPIO.RISING,callback=button_callback) # Setup event on pin 10 rising edge
 
 
 t1 = threading.Thread(target=System_Start)
 t2 = threading.Thread(target=System_Stop)
+t3 = threading.Thread(target=Button_Func)
 # starting thread 1
 t1.start()
 # starting thread 2
 t2.start()
+# starting thread 3
+t3.start()
+
 # wait until thread 1 is completely executed
 t1.join()
 # wait until thread 2 is completely executed
 t2.join()
+# wait until thread 3 is completely executed
+t3.join()
 
 
