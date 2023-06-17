@@ -3,6 +3,7 @@ import time
 import serial
 import codecs
 import re
+from tqdm import tqdm
 #Configurations for mini uart
 PORT = '/dev/ttyS0'
 BAUD_RATE = 9600
@@ -28,7 +29,7 @@ def flash():
                    #time.sleep(.05)
             result = chunk.findall(line)
             #sending Characters to STM32
-            for x in range (len(result)):
+            for x in tqdm( range (len(result))):
                 ser.write(result[x]) 
                 #time.sleep(.01)
             ser.write('\n'.encode('utf-8'))     

@@ -49,6 +49,19 @@ def System_Reset():
             file=open("/home/pi/ITI/FOTA/notify.txt","w")
             file.write("0")
             file.close()
+            #flashing empty rom in STM
+            if start_stop_flage == Syetem_Initialize :
+                print("system start lidar")
+                subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
+                sleep(2)
+                #request for STM to jump to the application
+                ser.write('j'.encode('utf-8'))
+
+            #Updating the ROM in STM
+            elif start_stop_flage == System_Stop:
+                #request for STM to stop to the application
+                ser.write('e'.encode('utf-8'))
+
             break
 
         #if the responce from STM is ready application 
@@ -57,7 +70,7 @@ def System_Reset():
             subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
             sleep(2)
             #request for STM to jump to the application
-            ser.write('a'.encode('utf-8'))
+            ser.write('j'.encode('utf-8'))
             break
 
 
@@ -95,12 +108,15 @@ def System_Stop():
                 System_Reset()
                 print("Flash done")
             start_stop_flage = System_IDLE
+
+            else :
+                #request for STM to stop to the application
+                ser.write('e'.encode('utf-8'))
         sleep(0.5)
 
 
 def button_callback(buffer):
     global start_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
-    print(start_stop_flage)
     if start_stop_flage == System_IDLE: 
         start_stop_flage = Syetem_Initialize
     elif start_stop_flage == System_Ready:

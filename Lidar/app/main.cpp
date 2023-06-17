@@ -341,7 +341,7 @@ int main(int argc, const char * argv[]) {
                     if (buffer_ptr->get_distance() < 100)
                     {
                         //std::cout<<"collision" <<std::endl;
-                        serialPuts(fd,"o"); 
+                        serialPuts(fd,"c"); 
                     }
                     /*std::cout << "angel: "<<buffer_ptr->get_theta()<<" , "<<"distance: "<<buffer_ptr->get_distance()<< " x: ";
                     std::cout <<buffer_ptr->get_x_coo()<<" y: "<<buffer_ptr->get_y_coo()<<std::endl;*/
