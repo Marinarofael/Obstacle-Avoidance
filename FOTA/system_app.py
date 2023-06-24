@@ -146,7 +146,7 @@ def Button_Func():
     global button_counter, start_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
     while True:
         #detect the rising edge and solve debouncing 
-        if GPIO.input(17) == GPIO.HIGH : 
+        if GPIO.input(27) == GPIO.HIGH : 
             button_counter = button_counter+1
         else :
             button_counter = 0
@@ -164,7 +164,7 @@ def Button_Func():
 ser.flush()
 GPIO.setwarnings(False) # Ignore warning for now
 GPIO.setmode(GPIO.BCM) # Use physical pin numbering
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
+GPIO.setup(27, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
 
 
 t1 = threading.Thread(target=System_Start)
