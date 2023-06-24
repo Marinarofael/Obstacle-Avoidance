@@ -51,6 +51,8 @@ def process_Kill(name):
 def System_Reset():
     while True :
         global ser, log_file
+        ser.reset_input_buffer()
+        ser.reset_output_buffer()
         data_rec=ser.read(size=1)
         now = datetime.now()
         log_str = now.strftime("%d/%m/%Y %H:%M:%S")
@@ -65,20 +67,16 @@ def System_Reset():
             file.close()
             #flashing empty rom in STM
             if start_stop_flage == Syetem_Initialize :
-                log_str = log_str + "|" +"system start lidar \n"
-                log_file.write(log_str)
-               
-                subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
-                sleep(2)
-                #request for STM to jump to the application
-                ser.write('j'.encode('utf-8'))
+                System_Reset()
+                break
 
             #Updating the ROM in STM
             elif start_stop_flage == System_Stop:
-                #request for STM to stop to the application
-                ser.write('e'.encode('utf-8'))
+                file=open("/home/pi/ITI/FOTA/notify.txt","w")
+                file.write("0")
+                file.close()
+                break
 
-            break
 
         #if the responce from STM is ready application 
         elif data_rec.decode('utf-8') == 'a':
@@ -86,7 +84,6 @@ def System_Reset():
             log_file.write(log_str)
             
             subprocess.Popen(["/home/pi/ITI/LIDAR/lidar --channel --serial /dev/ttyUSB0 115200"] , shell=True)
-            sleep(2)
             #request for STM to jump to the application
             ser.write('j'.encode('utf-8'))
             break
@@ -99,6 +96,8 @@ def System_Start():
         now = datetime.now()
         log_str = now.strftime("%d/%m/%Y %H:%M:%S")
         if start_stop_flage == Syetem_Initialize:
+            ser.reset_input_buffer()
+            ser.reset_output_buffer()
             os.system("python3 firebase_Get_Update_Script.py &")
             ser.write('s'.encode('utf-8')) 
             log_file=open("/home/pi/ITI/FOTA/log.txt","a")
@@ -110,7 +109,7 @@ def System_Start():
 
 
 
-def System_Stop():
+def System_Stop_Func():
     global start_stop_flage, System_Stop, System_IDLE, ser, log_file
     while True:
         now = datetime.now()
@@ -144,7 +143,7 @@ def System_Stop():
         sleep(0.5)
 
 def Button_Func():
-    global button_counter, tart_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
+    global button_counter, start_stop_flage, System_IDLE, Syetem_Initialize, System_Ready, System_Stop
     while True:
         #detect the rising edge and solve debouncing 
         if GPIO.input(17) == GPIO.HIGH : 
@@ -153,22 +152,23 @@ def Button_Func():
             button_counter = 0
         #if rising edge is detected
         if button_counter == 5 :
+            print("Button Presses")
             if start_stop_flage == System_IDLE: 
                 start_stop_flage = Syetem_Initialize
             elif start_stop_flage == System_Ready:
                 start_stop_flage = System_Stop
-        sleep(0.2)
+        sleep(0.01)
 
 
 
-
+ser.flush()
 GPIO.setwarnings(False) # Ignore warning for now
 GPIO.setmode(GPIO.BCM) # Use physical pin numbering
 GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_DOWN) # Set pin 10 to be an input pin and set initial value to be pulled low (off)
 
 
 t1 = threading.Thread(target=System_Start)
-t2 = threading.Thread(target=System_Stop)
+t2 = threading.Thread(target=System_Stop_Func)
 t3 = threading.Thread(target=Button_Func)
 # starting thread 1
 t1.start()
